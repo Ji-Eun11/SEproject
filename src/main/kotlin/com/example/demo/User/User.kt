@@ -1,0 +1,63 @@
+package com.example.demo.domain.user
+
+import jakarta.persistence.*
+import java.time.LocalDateTime
+@Entity
+@Table(name = "users")
+class User(
+    @Column(nullable = false, unique = true, length = 50) // (추가)
+    val loginId: String, // (추가)
+
+    @Column(nullable = false, unique = true, length = 100)
+    var email: String,
+
+    @Column(nullable = false)
+    var passwordHash: String,
+
+    @Column(nullable = false, length = 50)
+    var nickname: String,
+
+    @Column(length = 500)
+    var profileImage: String? = null
+){
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0
+
+    @Column(nullable = false)
+    var createdAt: LocalDateTime = LocalDateTime.now()
+        protected set
+
+    @Column(nullable = false)
+    var updatedAt: LocalDateTime = LocalDateTime.now()
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var role: UserRole = UserRole.USER
+        protected set
+
+    @Column(nullable = false)
+    var isActive: Boolean = true
+        protected set
+
+    fun updateProfile(nickname: String, profileImage: String?) {
+        this.nickname = nickname
+        this.profileImage = profileImage
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    fun updatePassword(newPasswordHash: String) {
+        this.passwordHash = newPasswordHash
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    fun deactivate() {
+        this.isActive = false
+        this.updatedAt = LocalDateTime.now()
+    }
+}
+
+enum class UserRole {
+    USER, ADMIN
+}
