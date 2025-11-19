@@ -29,7 +29,10 @@ class Review(
 
     // 사진 URL 목록 (별도의 테이블로 관리됨)
     @ElementCollection
-    @CollectionTable(name = "review_photos", joinColumns = [JoinColumn(name = "review_id")])
+    @CollectionTable(
+        name = "review_photos",
+        joinColumns = [JoinColumn(name = "review_id")])
+
     @Column(name = "review_url")
     var photos: MutableList<String> = mutableListOf()
 
