@@ -6,7 +6,7 @@ import com.example.demo.domain.place.PlaceRepository
 import org.springframework.stereotype.Service
 
 /**
- * 지도 관련 비즈니스 로직 담당 (SDS의 MapViewModel 역할)
+ * 지도 관련 비즈니스 로직 담당 
  * - 영역 내 장소 검색
  * - MarkerInfo 변환
  * - 정렬 처리
