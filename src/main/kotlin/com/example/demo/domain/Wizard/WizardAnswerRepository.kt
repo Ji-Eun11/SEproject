@@ -1,4 +1,4 @@
-package com.example.demo.domain.wizard.repository
+package com.example.demo.domain.wizard
 
 import com.example.demo.domain.wizard.WizardAnswer
 import org.springframework.data.jpa.repository.JpaRepository
