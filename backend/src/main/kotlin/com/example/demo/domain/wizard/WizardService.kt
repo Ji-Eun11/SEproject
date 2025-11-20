@@ -14,7 +14,6 @@ import com.example.demo.domain.wizard.WizardAnswerRepository
 import com.example.demo.domain.wizard.dto.WizardQuestionDto
 import com.example.demo.domain.wizard.dto.WizardRecommendRequest
 
-
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -52,42 +51,38 @@ class WizardService(
     ): List<PlaceDtoResponse> {
 
         // A. 사용자가 선택한 답변을 통해 '태그' 목록 추출
-        // (예: [SIZE_LARGE, ENERGY_HIGH, TYPE_NATURE])
         val selectedAnswers = answerRepository.findAllById(request.selectedAnswerIds)
         val selectedTags = selectedAnswers.map { it.matchingTag }.toSet()
 
         // B. 전체 장소 가져오기
-        // (데이터가 수만 건이 넘어가면 QueryDSL로 동적 쿼리를 짜야 하지만, 지금은 findAll 후 필터링이 빠름)
         val allPlaces = placeRepository.findAll()
 
-        // C. 태그와 장소 특성 매칭 (필터링 로직)
-        val filteredPlaces = allPlaces.filter { place ->
-            isPlaceMatchedWithTags(place, selectedTags)
-        }
-
-        // D. 거리 계산 (Place와 Distance를 묶어서 처리)
-        // request에 userLatitude, userLongitude가 있다고 가정 (DTO 수정 필요)
-        val placesWithDistance = filteredPlaces.map { place ->
+        // C. [순서 변경] 거리 계산을 먼저 수행 (필터링에 거리가 필요하므로)
+        val placesWithDistance = allPlaces.map { place ->
             val dist = if (request.userLatitude != null && request.userLongitude != null) {
                 DistanceCalculator.calculate(
                     request.userLatitude, request.userLongitude,
                     place.latitude ?: 0.0, place.longitude ?: 0.0
                 )
             } else {
-                Double.MAX_VALUE // 위치 정보 없으면 거리 무한대 처리
+                Double.MAX_VALUE // 위치 정보가 없으면 거리를 무한대로 설정 (거리 필터 시 탈락됨)
             }
             Pair(place, dist)
         }
 
+        // D. 태그와 장소 특성 매칭 (거리 정보 포함하여 필터링)
+        val filteredPlaces = placesWithDistance.filter { (place, dist) ->
+            isPlaceMatchedWithTags(place, selectedTags, dist)
+        }
+
         // E. 정렬 (거리순, 평점순, 인기순)
         val sortedList = when (sort) {
-            "rating" -> placesWithDistance.sortedByDescending { it.first.avgRating } // 평점 높은순
-            "popular" -> placesWithDistance.sortedByDescending { it.first.reviewCount } // 리뷰 많은순
-            else -> placesWithDistance.sortedBy { it.second } // 거리 가까운순 (기본)
+            "rating" -> filteredPlaces.sortedByDescending { it.first.avgRating } // 평점 높은순
+            "popular" -> filteredPlaces.sortedByDescending { it.first.reviewCount } // 리뷰 많은순
+            else -> filteredPlaces.sortedBy { it.second } // 거리 가까운순 (기본)
         }
 
         // F. 상위 3개 변환 후 반환
-        // 결과가 없으면 빈 리스트 반환 (에러 대신 빈 화면 처리가 UX상 나을 수 있음)
         if (sortedList.isEmpty()) {
             return emptyList()
         }
@@ -99,33 +94,40 @@ class WizardService(
 
     /**
      * 🧩 핵심 로직: WizardTag(사용자 답변)가 이 Place에 적합한지 검사
+     * (거리 정보도 함께 받아서 판단)
      */
-    private fun isPlaceMatchedWithTags(place: Place, tags: Set<WizardTag>): Boolean {
+    private fun isPlaceMatchedWithTags(place: Place, tags: Set<WizardTag>, distance: Double): Boolean {
 
-        // 1. 견종 크기 필터 (필수 조건) (사용자가 '소형견'을 선택했는데, 장소가 '소형견'을 허용 안 하면 탈락)
+        // 1. 견종 크기 필터 (필수 조건)
         if (tags.contains(WizardTag.SMALL) && !place.allowedSizes.contains(DogSize.SMALL)) return false
         if (tags.contains(WizardTag.MEDIUM) && !place.allowedSizes.contains(DogSize.MEDIUM)) return false
         if (tags.contains(WizardTag.LARGE) && !place.allowedSizes.contains(DogSize.LARGE)) return false
 
-        // 활동량(에너지) 매칭
-        // 에너지가 넘치는 강아지 -> 운동장, 수영장, 야외 선호
+        // 2. [추가됨] 이동 거리 필터
+        // - DIST_NEAR: 5km 이내 (5000m)
+        if (tags.contains(WizardTag.DIST_NEAR) && distance > 5000) return false
+        // - DIST_MID: 20km 이내 (20000m)
+        if (tags.contains(WizardTag.DIST_MID) && distance > 20000) return false
+        // - DIST_FAR: 20km 이상 (20000m)
+        if (tags.contains(WizardTag.DIST_FAR) && distance < 20000) return false
+
+        // 3. 활동량(에너지) 매칭
         if (tags.contains(WizardTag.ENERGY_HIGH)) {
             val isHighEnergyPlace = place.category == PlaceCategory.PLAYGROUND ||
                     place.category == PlaceCategory.SWIMMING ||
                     place.locationType == LocationType.OUTDOOR
             if (!isHighEnergyPlace) return false
         }
-        // 에너지가 적은 강아지 -> 카페, 실내 선호
         if (tags.contains(WizardTag.ENERGY_LOW)) {
             val isLowEnergyPlace = place.category == PlaceCategory.CAFE ||
                     place.locationType == LocationType.INDOOR
             if (!isLowEnergyPlace) return false
         }
 
-        // 장소 유형 매칭 (자연 선호 -> 야외)
+        // 4. 장소 유형 매칭
         if (tags.contains(WizardTag.TYPE_NATURE) && place.locationType == LocationType.INDOOR) return false
 
-        // 프라이빗 선호 (숙소나, 오프리쉬가 가능한 곳을 추천)
+        // 5. 프라이빗 선호
         if (tags.contains(WizardTag.TYPE_PRIVATE)) {
             if (place.category != PlaceCategory.ACCOMMODATION && !place.isOffLeash) return false
         }

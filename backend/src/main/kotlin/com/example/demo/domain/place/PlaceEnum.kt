@@ -7,7 +7,7 @@ enum class PlaceCategory(val description: String) {
     PLAYGROUND("운동장"),
     SWIMMING("물놀이"),
     ACCOMMODATION("숙소"),
-    HOSPITAL("병원")
+    PARK("공원")
 }
 
 // 견종 크기
