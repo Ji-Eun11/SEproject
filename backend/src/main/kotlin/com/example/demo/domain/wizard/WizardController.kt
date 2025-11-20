@@ -1,7 +1,7 @@
 package com.example.demo.domain.wizard.controller
 
-import com.example.demo.domain.wizard.dto.WizardRecommendRequest
 import com.example.demo.domain.wizard.service.WizardService
+import com.example.demo.domain.wizard.dto.WizardRecommendRequest
 import org.springframework.web.bind.annotation.*
 
 // Wizard 관련 API 컨트롤러

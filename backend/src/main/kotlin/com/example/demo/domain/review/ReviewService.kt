@@ -80,6 +80,8 @@ class ReviewService(
         // 해당 장소의 모든 리뷰를 가져옴
         val reviews = reviewRepository.findAllByPlace_PlaceIdOrderByCreatedAtDesc(placeId)
 
+        val reviewCount = reviews.size
+
         // 평균 계산 (리뷰가 없으면 0.0)
         val avgRating = if (reviews.isEmpty()) {
             0.0
@@ -95,7 +97,7 @@ class ReviewService(
         val place = placeRepository.findByIdOrNull(placeId)
             ?: return // 장소가 없으면 무시
 
-        place.updateAvgRating(roundedAvgRating)
+        place.updateRatingInfo(roundedAvgRating, reviewCount)
         placeRepository.save(place)
     }
 

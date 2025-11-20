@@ -12,7 +12,7 @@ class PlaceService(
     private val placeRepository: PlaceRepository
 ) {
 
-    // 장소 등록 (관리자용)
+    // 장소 등록
     @Transactional
     fun createPlace(request: PlaceCreateRequest): PlaceDtoResponse {
         val place = Place(
@@ -21,9 +21,18 @@ class PlaceService(
             phone = request.phone,
             operationHours = request.operationHours,
             petPolicy = request.petPolicy,
+
+            // [추가 매핑]
+            category = request.category,
+            locationType = request.locationType,
+            hasParking = request.hasParking,
+            isOffLeash = request.isOffLeash,
+
             latitude = request.latitude,
             longitude = request.longitude
         ).apply {
+            // Set 타입 데이터 추가
+            this.allowedSizes.addAll(request.allowedSizes)
             this.photos.addAll(request.photos)
         }
 
@@ -31,19 +40,26 @@ class PlaceService(
         return PlaceDtoResponse.from(savedPlace)
     }
 
+    // 장소 수정
     @Transactional
     fun updatePlace(placeId: Long, request: PlaceUpdateRequest): PlaceDtoResponse {
-        // 수정할 장소 조회
         val place = placeRepository.findByIdOrNull(placeId)
             ?: throw IllegalArgumentException("존재하지 않는 장소입니다.")
 
-        // 데이터 수정 (Dirty Checking에 의해 트랜잭션 종료 시 DB 반영)
+        // [수정 메서드 호출]
         place.updateInfo(
             name = request.name,
             address = request.address,
             phone = request.phone,
             operationHours = request.operationHours,
             petPolicy = request.petPolicy,
+
+            category = request.category,
+            locationType = request.locationType,
+            hasParking = request.hasParking,
+            isOffLeash = request.isOffLeash,
+            allowedSizes = request.allowedSizes,
+
             latitude = request.latitude,
             longitude = request.longitude,
             newPhotos = request.photos

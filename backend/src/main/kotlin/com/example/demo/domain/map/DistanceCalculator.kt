@@ -8,7 +8,7 @@ import kotlin.math.*
  */
 object DistanceCalculator {
 
-    private const val EARTH_RADIUS_M = 6371000.0 // 지구 반지름 (m)
+    private const val EARTH_RADIUS_M = 6371000.0
 
     fun calculate(
         lat1: Double, lon1: Double,

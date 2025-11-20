@@ -1,61 +1,72 @@
 package com.example.demo.domain.map
 
+import com.example.demo.domain.map.dto.MapSearchCondition
 import com.example.demo.domain.map.dto.MapSearchResponse
 import com.example.demo.domain.map.mapper.PlaceMapper
 import com.example.demo.domain.place.PlaceRepository
+import com.example.demo.domain.place.model.LocationType
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
-/**
- * 지도 관련 비즈니스 로직 담당 
- * - 영역 내 장소 검색
- * - MarkerInfo 변환
- * - 정렬 처리
- */
 @Service
+@Transactional(readOnly = true)
 class MapService(
     private val placeRepository: PlaceRepository,
     private val locationService: LocationService
 ) {
 
-    /**
-     * 지도 영역 내 장소들을 검색하고,
-     * MarkerInfo 리스트 + 개수로 반환
-     */
-    fun searchInArea(
-        area: Area,
-        sort: MapSortType
-    ): MapSearchResponse {
-
-        val userLocation = locationService.getCurrentLocation()
-
-        // 1) 영역 조건으로 장소 조회 (PlaceRepository 쿼리 필요)
+    fun searchInArea(condition: MapSearchCondition): MapSearchResponse {
+        // DB 조회 (좌표 범위)
         val places = placeRepository.findPlacesInArea(
-            area.minLatitude,
-            area.maxLatitude,
-            area.minLongitude,
-            area.maxLongitude
+            minLat = condition.minLatitude,
+            maxLat = condition.maxLatitude,
+            minLon = condition.minLongitude,
+            maxLon = condition.maxLongitude
         )
 
-        // 2) Place -> MarkerInfo 변환 + 거리 계산
-        var markers = places.map { place ->
-            PlaceMapper.toMarkerInfo(place, userLocation)
+        // 메모리 필터링
+        val filteredPlaces = places.filter { place ->
+            val matchKeyword = condition.keyword.isNullOrBlank() ||
+                    place.name.contains(condition.keyword, ignoreCase = true) ||
+                    place.address.contains(condition.keyword, ignoreCase = true)
+
+            val matchCategory = condition.category == null || place.category == condition.category
+
+            val matchParking = condition.hasParking == null || condition.hasParking == false ||
+                    place.hasParking == condition.hasParking
+
+            val matchOffLeash = condition.isOffLeash == null || condition.isOffLeash == false ||
+                    place.isOffLeash == condition.isOffLeash
+
+            val matchLocation = condition.locationType == null ||
+                    place.locationType == LocationType.BOTH ||
+                    place.locationType == condition.locationType
+
+            val matchSize = condition.dogSize == null ||
+                    place.allowedSizes.contains(condition.dogSize)
+
+            val matchRating = condition.minRating == null || place.avgRating >= condition.minRating
+
+            matchKeyword && matchCategory && matchParking &&
+                    matchOffLeash && matchLocation && matchSize && matchRating
         }
 
-        // 3) 정렬 기준 적용
-        markers = when (sort) {
-            MapSortType.DISTANCE ->
-                markers.sortedBy { it.distance ?: Double.MAX_VALUE }
+        // 거리 계산 수행
+        val userLoc = locationService.getCurrentLocation()
+        var markers = filteredPlaces.map { place ->
+            PlaceMapper.toMarkerInfo(place, userLoc)
+        }
 
-            MapSortType.RATING ->
-                markers.sortedByDescending { it.rating ?: 0.0 }
-
-            MapSortType.POPULARITY ->
-                markers.sortedByDescending { it.rating ?: 0.0 } // reviewCount 있으면 교체
+        // 4. 정렬 (이미 계산된 DTO의 필드를 기준으로 정렬)
+        markers = when (condition.sort) {
+            MapSortType.RATING -> markers.sortedByDescending { it.rating }
+            MapSortType.POPULARITY -> markers.sortedByDescending { it.reviewCount }
+            MapSortType.DISTANCE -> markers.sortedBy { it.distance ?: Double.MAX_VALUE } // 거리가 없으면 맨 뒤로
         }
 
         return MapSearchResponse(
-            markers = markers,
-            totalCount = markers.size
+            totalCount = markers.size,
+            markers = markers
         )
     }
 }
