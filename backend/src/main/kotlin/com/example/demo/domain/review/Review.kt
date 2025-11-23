@@ -39,8 +39,14 @@ class Review(
     @Column(name = "review_url")
     var photos: MutableList<String> = mutableListOf()
 
+    // 리뷰 생성 시 평점 검증
+    init {
+        require(rating in 1..5) { "리뷰 평점은 1~5 사이여야 합니다." }
+    }
+
     // 정보 수정 메서드
     fun updateInfo(content: String, rating: Int, newPhoto: List<String>) {
+        require(rating in 1..5) { "리뷰 평점은 1~5 사이여야 합니다." }
         this.content = content
         this.rating = rating
         this.photos.clear()
