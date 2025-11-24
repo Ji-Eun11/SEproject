@@ -79,8 +79,8 @@ class UserController(
 
 
     // ID기반 사용자 조회
-    @GetMapping("/{userId}")
-    fun getUser(@PathVariable userId: Long): ResponseEntity<ApiResponse<UserResponse>> {
+    @GetMapping("/me")
+    fun getUser(@AuthenticationPrincipal userId: Long): ResponseEntity<ApiResponse<UserResponse>> {
         val user = userService.getUserById(userId)
         return ResponseEntity.ok(
             ApiResponse(
@@ -92,7 +92,7 @@ class UserController(
     }
 
     // 프로필 업데이트
-    @PutMapping("/{userId}/profile")
+    @PutMapping("/profile")
     fun updateProfile(
         @AuthenticationPrincipal userId: Long,
         @Valid @RequestBody request: UpdateProfileRequest
@@ -108,7 +108,7 @@ class UserController(
     }
 
     // 비밀번호 변경
-    @PutMapping("/{userId}/password")
+    @PutMapping("/password")
     fun changePassword(
         @AuthenticationPrincipal userId: Long,
         @Valid @RequestBody request: ChangePasswordRequest
@@ -123,8 +123,8 @@ class UserController(
     }
 
     // 회원탈퇴
-    @DeleteMapping("/{userId}")
-    fun deleteAccount(@PathVariable userId: Long): ResponseEntity<ApiResponse<Unit>> {
+    @DeleteMapping("/me")
+    fun deleteAccount(@AuthenticationPrincipal userId: Long): ResponseEntity<ApiResponse<Unit>> {
         userService.deleteAccount(userId)
         return ResponseEntity.ok(
             ApiResponse(
