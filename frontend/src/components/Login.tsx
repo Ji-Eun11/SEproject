@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios"; // 1. 통신 도구 추가
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -18,14 +19,36 @@ export function Login({ onLogin, onSignup, onFindAccount, onBack }: LoginProps) 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = () => {
+  // 2. 로그인 함수를 비동기(async)로 변경
+  const handleLogin = async () => {
     if (!username || !password) {
       setError("아이디와 비밀번호를 모두 입력해주세요.");
       return;
     }
-    // Mock login - accept any non-empty credentials
-    setError("");
-    onLogin();
+
+    try {
+      // 3. 가짜 코드 지우고 진짜 서버(AWS)로 요청 보내기
+      // 주의: 백엔드 API 주소가 /login 인지 /api/login 인지 확인 필요 (일단 /login으로 설정)
+      const response = await axios.post("http://52.79.197.189:8080/login", {
+        username: username,
+        password: password,
+      });
+
+      // 4. 서버가 OK(200) 응답을 주면 로그인 성공 처리
+      if (response.status === 200) {
+        console.log("로그인 성공!", response.data);
+        setError("");
+        onLogin(); // 다음 화면으로 이동
+      }
+    } catch (err: any) {
+      // 5. 실패했을 때 에러 처리
+      console.error("로그인 에러:", err);
+      if (err.response && err.response.status === 401) {
+        setError("아이디 또는 비밀번호가 일치하지 않습니다.");
+      } else {
+        setError("서버 연결에 실패했습니다. (네트워크 에러)");
+      }
+    }
   };
 
   return (
