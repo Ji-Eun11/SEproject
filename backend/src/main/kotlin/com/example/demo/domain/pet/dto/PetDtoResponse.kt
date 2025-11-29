@@ -11,9 +11,11 @@ data class PetDtoResponse(
     val gender: PetGender,
     val size: Size,
     val birthDate: LocalDate?,
-    val age: Int, // [추가]
+    val age: Int,
     val weight: Double?,
     val specialNotes: String?,
+    val breed: String?,
+    val photoUrl: String?,
     val ownerId: Long
 ) {
     companion object {
@@ -27,6 +29,8 @@ data class PetDtoResponse(
                 age = pet.age, // [추가]
                 weight = pet.weight,
                 specialNotes = pet.specialNotes,
+                breed = pet.breed,
+                photoUrl = pet.photoUrl,
                 ownerId = pet.owner.userId
             )
         }

@@ -23,9 +23,11 @@ class PetService(
             gender = request.gender,
             size = request.size,
             birthDate = request.birthDate,
-            age = request.age, // [추가]
+            age = request.age,
             weight = request.weight,
             specialNotes = request.specialNotes,
+            breed = request.breed,
+            photoUrl = request.photoUrl,
             owner = owner
         )
         val savedPet = petRepository.save(pet)
@@ -50,9 +52,11 @@ class PetService(
             gender = request.gender,
             size = request.size,
             birthDate = request.birthDate,
-            age = request.age, // [추가]
+            age = request.age, 
             weight = request.weight,
-            specialNotes = request.specialNotes
+            specialNotes = request.specialNotes,
+            breed = request.breed,
+            photoUrl = request.photoUrl
         )
         return PetDtoResponse.from(pet)
     }
