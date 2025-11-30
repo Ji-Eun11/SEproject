@@ -94,6 +94,15 @@ export function Signup({ onSignup, onBack }: SignupProps) {
   };
 
   const handleSubmit = async () => {
+    // 필수 항목 체크
+  const requiredFields = ["name", "birthdate", "phone", "address"];
+  for (const field of requiredFields) {
+    if (!formData[field]) {
+      alert(`${field === "name" ? "이름" : field === "birthdate" ? "생년월일" : field === "phone" ? "연락처" : "주소"}을 입력해주세요.`);
+      return;
+    }
+  }
+
     // 1. 비밀번호 일치 확인
     if (formData.password !== formData.passwordConfirm) {
       setErrors({ ...errors, passwordConfirm: "비밀번호가 일치하지 않습니다" });
@@ -125,7 +134,8 @@ export function Signup({ onSignup, onBack }: SignupProps) {
       const result = await response.json();
       if (result.success) {
         alert("회원가입 성공!");
-        onSignup();
+        // 반려동물 등록 페이지 이동
+        window.location.href = "/pet-register";
       } else {
         alert(result.message || "가입 실패");
       }

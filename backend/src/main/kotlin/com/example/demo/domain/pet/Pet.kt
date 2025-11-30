@@ -23,11 +23,14 @@ class Pet(
 
     var birthDate: LocalDate? = null,
     
-    // [추가] 나이 필드 추가
     var age: Int = 0, 
 
     var weight: Double? = null,
     var specialNotes: String? = null,
+
+    var breed: String? = null,
+
+    var photoUrl: String? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -43,9 +46,11 @@ class Pet(
         this.gender = gender
         this.size = size
         this.birthDate = birthDate
-        this.age = age // [추가]
+        this.age = age 
         this.weight = weight
         this.specialNotes = specialNotes
+        this.breed = breed
+        this.photoUrl = photoUrl
     }
 }
 
